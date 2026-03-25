@@ -139,7 +139,9 @@ Generate plots using `scripts/plot_results.py`.
 
 ### Midterm Presentation (if needed)
 - ~10 slides covering: background, approach, progress, next steps
-- Can be generated as PDF slides or PPTX
+- **MUST be `.pptx` format** (editable PowerPoint) with speaker notes in the Notes pane
+- Also export a `.pdf` backup
+- Use `python-pptx` library to generate programmatically
 
 ---
 
@@ -156,10 +158,14 @@ Generate plots using `scripts/plot_results.py`.
 
 ## Phase 7: Final Deliverables
 
-### Final Presentation (PPT/PDF)
-- ~15-20 slides
+### Final Presentation (PPTX — CRITICAL)
+- **MUST be `.pptx` format** (editable PowerPoint), also export `.pdf`
+- **20 minutes** presentation duration
+- **MUST include speaker notes (演讲稿) in the Notes pane of EVERY slide** — complete speaking script, ~150-200 words per slide, totaling ~20 minutes
+- 15-20 slides
 - Structure: Background → Llumnix → Problem → Our Approach → MDP → Architecture → Training → Experiments (5) → Ablation → Insights → Limitations → Conclusion
 - Must include result figures and comparison tables
+- Use `python-pptx` library to generate; see `docs/DELIVERABLES_SPEC.md` for detailed requirements and example code
 
 ### Final Report (LaTeX + PDF)
 - Use `templates/final_report.tex` as template
@@ -187,9 +193,11 @@ Generate plots using `scripts/plot_results.py`.
    output/
    ├── midterm/
    │   ├── midterm_report.pdf
-   │   └── midterm_slides.pdf (if applicable)
+   │   ├── midterm_slides.pptx        # Editable PPT with speaker notes
+   │   └── midterm_slides.pdf         # PDF backup
    ├── final/
-   │   ├── final_presentation.pptx (or .pdf)
+   │   ├── final_presentation.pptx    # MUST: editable PPT with speaker notes (演讲稿)
+   │   ├── final_presentation.pdf     # PDF backup
    │   ├── final_report.tex
    │   └── final_report.pdf
    ├── results/

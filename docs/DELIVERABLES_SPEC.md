@@ -75,43 +75,107 @@ output/
 
 ---
 
-## Deliverable 2: Final Presentation (PPT)
+## Deliverable 2: Final Presentation (PPT) — CRITICAL REQUIREMENTS
 
 ### Format
+- **File format**: **MUST be `.pptx` (editable PowerPoint)**. Also generate a `.pdf` export as backup.
 - **Slides**: 15-20 slides
-- **Duration**: ~15-20 minutes presentation
-- **Output**: `output/final/final_presentation.pptx` or `.pdf`
+- **Duration**: **20 minutes** presentation (plan pacing accordingly)
+- **Speaker notes**: **MUST include speaker notes (演讲稿) in the Notes pane of EVERY slide.** The speaker notes should be a complete, natural-language script that the presenter can read verbatim or use as a guide. Each slide's notes should cover approximately 1-1.5 minutes of speaking time.
+- **Output files**:
+  - `output/final/final_presentation.pptx` (PRIMARY — editable, with speaker notes)
+  - `output/final/final_presentation.pdf` (SECONDARY — for backup/sharing)
+
+### PPTX Generation
+
+Use the `python-pptx` library to generate the `.pptx` file programmatically:
+
+```bash
+pip install python-pptx
+```
+
+```python
+from pptx import Presentation
+from pptx.util import Inches, Pt
+
+prs = Presentation()
+
+# For each slide:
+slide = prs.slides.add_slide(prs.slide_layouts[1])  # title + content
+slide.shapes.title.text = "Slide Title"
+slide.placeholders[1].text = "Bullet content"
+
+# ADD SPEAKER NOTES (this is mandatory):
+notes_slide = slide.notes_slide
+notes_slide.notes_text_frame.text = """
+This is the speaker script for this slide.
+It should be 1-1.5 minutes of natural speaking content.
+Cover the key points, transitions, and what to emphasize.
+"""
+
+prs.save("final_presentation.pptx")
+```
+
+### Speaker Notes Guidelines
+
+Each slide's speaker notes MUST:
+1. Be a **complete speaking script** (not just bullet points)
+2. Cover **1-1.5 minutes** of speaking time (~150-200 words per slide)
+3. Include **transition phrases** to the next slide (e.g., "Now let's look at...")
+4. Highlight what to **emphasize** when presenting
+5. Be written in **English** (matching the slides)
+6. Total speaking time across all slides: **~20 minutes**
+
+Example speaker notes for a slide:
+
+```
+"Good afternoon everyone. Today we're presenting our work on improving
+LLM serving scheduling with reinforcement learning.
+
+As you know, serving large language models like GPT and LLaMA at scale
+is becoming increasingly important. But there's a fundamental challenge:
+unlike traditional DNN inference where request sizes are fixed, LLM
+requests have unpredictable output lengths. This means the GPU memory
+consumption — specifically the KV cache — grows dynamically during
+generation, and we don't know in advance how much memory a request will
+need.
+
+This unpredictability creates three major problems that I'll walk you
+through on the next slide..."
+```
 
 ### Required Slide Structure
 
-| Slide # | Title | Content |
-|---------|-------|---------|
-| 1 | Title Slide | Project title, team members, course |
-| 2 | Outline | Agenda for the presentation |
-| 3 | Background: LLM Serving | Key challenges (unpredictable lengths, KV cache, preemptions) |
-| 4 | The Problem: Static Scheduling | Why heuristics fail (static, myopic, fixed tradeoffs) |
-| 5 | Baseline: Llumnix | Virtual usage concept, freeness, 4 heuristic rules |
-| 6 | Our Proposal | RL replaces CalcVirtualUsage(), minimal modification |
-| 7 | MDP Formulation | State / Action / Reward design (with visuals) |
-| 8 | Architecture | System diagram showing RL integration point |
-| 9 | Policy Network | Multi-head PPO architecture diagram |
-| 10 | Training Pipeline | Two-phase: behavior cloning + PPO fine-tuning |
-| 11 | Exp 1: Baseline Serving | Results plots (latency comparison) |
-| 12 | Exp 2: Priority | SLO isolation results |
-| 13 | Exp 3: Bursty Traffic | Adaptation under load spikes |
-| 14 | Exp 4: Long-Context | Memory fragmentation results |
-| 15 | Exp 5: Generalization | Cross-distribution transfer |
-| 16 | Ablation Studies | Reward weights, state features, training duration |
-| 17 | Key Insights | What we learned, when RL helps/hurts |
-| 18 | Limitations & Future Work | Current gaps, potential extensions |
-| 19 | Conclusion | Summary of contributions |
-| 20 | Q&A | Thank you + questions |
+| Slide # | Title | Content | Notes Duration |
+|---------|-------|---------|---------------|
+| 1 | Title Slide | Project title, team members, course | 0.5 min (greeting + intro) |
+| 2 | Outline | Agenda for the presentation | 0.5 min |
+| 3 | Background: LLM Serving | Key challenges (unpredictable lengths, KV cache, preemptions) | 1.5 min |
+| 4 | The Problem: Static Scheduling | Why heuristics fail (static, myopic, fixed tradeoffs) | 1 min |
+| 5 | Baseline: Llumnix | Virtual usage concept, freeness, 4 heuristic rules | 1.5 min |
+| 6 | Our Proposal | RL replaces CalcVirtualUsage(), minimal modification | 1 min |
+| 7 | MDP Formulation | State / Action / Reward design (with visuals) | 1.5 min |
+| 8 | Architecture | System diagram showing RL integration point | 1 min |
+| 9 | Policy Network | Multi-head PPO architecture diagram | 1 min |
+| 10 | Training Pipeline | Two-phase: behavior cloning + PPO fine-tuning | 1 min |
+| 11 | Exp 1: Baseline Serving | Results plots (latency comparison) | 1.5 min |
+| 12 | Exp 2: Priority | SLO isolation results | 1 min |
+| 13 | Exp 3: Bursty Traffic | Adaptation under load spikes | 1 min |
+| 14 | Exp 4: Long-Context | Memory fragmentation results | 1 min |
+| 15 | Exp 5: Generalization | Cross-distribution transfer | 1 min |
+| 16 | Ablation Studies | Reward weights, state features, training duration | 1 min |
+| 17 | Key Insights | What we learned, when RL helps/hurts | 1 min |
+| 18 | Limitations & Future Work | Current gaps, potential extensions | 1 min |
+| 19 | Conclusion | Summary of contributions | 0.5 min |
+| 20 | Q&A | Thank you + questions | 0.5 min |
+| | | **Total** | **~20 min** |
 
 ### Design Guidelines
 - Use clean, professional design (dark blue headers, orange accents for emphasis)
 - Include result plots directly (not tables of numbers)
 - Each slide should have a clear takeaway message
 - Use code snippets sparingly (only for CalcVirtualUsage comparison)
+- Ensure text is large enough to read from the back of a classroom (min 18pt for body text)
 
 ---
 
