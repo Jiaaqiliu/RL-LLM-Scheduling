@@ -1,0 +1,177 @@
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2025}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\title{RL-based Dynamic Scheduling for LLM Serving:\\Midterm Progress Report}
+
+\author{
+  Yuxuan Bai \\
+  University of Virginia \\
+  \texttt{yuxuan.bai@virginia.edu} \\
+  \And
+  Jiaqi Liu \\
+  University of Virginia \\
+  \texttt{jiaqi.liu@virginia.edu} \\
+  \And
+  Peng Xia \\
+  University of Virginia \\
+  \texttt{peng.xia@virginia.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+% TODO: Write abstract summarizing midterm progress
+% 1 paragraph: problem, approach, progress so far, preliminary findings
+\end{abstract}
+
+\section{Introduction}
+
+% TODO: Problem statement (0.5 page)
+% - LLM serving scheduling challenges
+% - Llumnix and its limitations (heuristic-based)
+% - Our approach: RL-based virtual usage replacement
+% - Key design: minimal modification to Llumnix
+
+\section{Background}
+
+% TODO: Background (1 page)
+
+\subsection{LLM Serving and KV Cache Management}
+% Auto-regressive inference, KV cache growth, preemption problem
+
+\subsection{Llumnix System}
+% Virtual usage, freeness, 4 heuristic rules, migration mechanism
+
+\subsection{RL for Systems Scheduling}
+% Prior work: Pensieve, Decima, resource management with RL
+
+\section{Progress}
+
+% TODO: Progress so far (1.5-2 pages)
+
+\subsection{MDP Formulation}
+
+% State space definition with math
+% Action space
+% Reward function
+
+\paragraph{State space.}
+% Per-instance: memory usage, queue length, waiting demand, etc.
+% Cluster: mean load, variance, total waiting, etc.
+
+\paragraph{Action space.}
+% Continuous virtual usage adjustment per instance
+
+\paragraph{Reward function.}
+% r_t = w_1 * latency + w_2 * preemption + w_3 * fragmentation + ...
+
+\subsection{Simulation Environment}
+% Description of the simulator
+% Timing model based on Llumnix paper data
+% How it interfaces with Llumnix scheduling logic
+
+\subsection{RL Agent Architecture}
+% Policy network design
+% Multi-head attention architecture
+% PPO training setup
+
+% TODO: Include figure of network architecture
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=0.8\textwidth]{figures/architecture.pdf}
+%   \caption{RL policy network architecture for Llumnix scheduling.}
+%   \label{fig:architecture}
+% \end{figure}
+
+\subsection{Preliminary Results}
+% Training curves
+% Initial comparison in simulation
+
+% TODO: Include training curve figure
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=0.6\textwidth]{figures/training_curve.pdf}
+%   \caption{Training reward over timesteps.}
+%   \label{fig:training}
+% \end{figure}
+
+% TODO: Include preliminary results table
+% \begin{table}[h]
+%   \centering
+%   \caption{Preliminary comparison in simulation (ShareGPT trace, 16 instances).}
+%   \begin{tabular}{lcccc}
+%     \toprule
+%     Policy & Request P99 (s) & Prefill P99 (s) & Decode P99 (s) & Preemptions \\
+%     \midrule
+%     Round-Robin & & & & \\
+%     Llumnix-Heuristic & & & & \\
+%     Llumnix-RL (ours) & & & & \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+\section{Remaining Work}
+
+% TODO: What's left (0.5 page)
+% - Full Llumnix integration on real GPUs
+% - Complete experiment suite (5 experiments)
+% - Ablation studies
+% - Final report and presentation
+
+\section{Challenges}
+
+% TODO: Technical challenges (0.5 page)
+% - Simulation fidelity vs. speed tradeoff
+% - Reward shaping (what weights work best)
+% - Integration complexity (code structure differs from paper description)
+
+\begin{thebibliography}{6}
+\small
+
+\bibitem[Sun et al.(2024)]{sun2024llumnix}
+B.~Sun, Z.~Huang, H.~Zhao, W.~Xiao, X.~Zhang, Y.~Li, and W.~Lin.
+Llumnix: Dynamic scheduling for large language model serving.
+In \emph{OSDI}, 2024.
+
+\bibitem[Kwon et al.(2023)]{kwon2023vllm}
+W.~Kwon et al.
+Efficient memory management for large language model serving with {PagedAttention}.
+In \emph{SOSP}, 2023.
+
+\bibitem[Schulman et al.(2017)]{schulman2017proximal}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov.
+Proximal policy optimization algorithms.
+\emph{arXiv:1707.06347}, 2017.
+
+\bibitem[Mao et al.(2016)]{mao2016resource}
+H.~Mao, M.~Alizadeh, I.~Menache, and S.~Kandula.
+Resource management with deep reinforcement learning.
+In \emph{HotNets}, 2016.
+
+\bibitem[Mao et al.(2017)]{mao2017neural}
+H.~Mao, R.~Netravali, and M.~Alizadeh.
+Neural adaptive video streaming with {Pensieve}.
+In \emph{SIGCOMM}, 2017.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,287 @@
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2025}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{multirow}
+
+\title{RL-based Dynamic Scheduling for LLM Serving:\\Improving Llumnix with Reinforcement Learning}
+
+\author{
+  Yuxuan Bai \\
+  University of Virginia \\
+  \texttt{yuxuan.bai@virginia.edu} \\
+  \And
+  Jiaqi Liu \\
+  University of Virginia \\
+  \texttt{jiaqi.liu@virginia.edu} \\
+  \And
+  Peng Xia \\
+  University of Virginia \\
+  \texttt{peng.xia@virginia.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+% TODO: Abstract (1 paragraph)
+% Serving large language models at scale requires dynamic scheduling to handle
+% unpredictable request lengths and KV cache growth. Llumnix (OSDI 2024) introduced
+% live request migration with a heuristic virtual usage policy. We replace this
+% heuristic with a reinforcement learning (RL) agent that learns scheduling decisions
+% from data. Our PPO-based policy observes cluster state and outputs virtual usage
+% values as a drop-in replacement for Llumnix's CalcVirtualUsage() function.
+% Experiments on [X] GPUs with LLaMA-7B show that our RL policy achieves [X]%
+% improvement in P99 latency and [X]% reduction in preemptions compared to the
+% original heuristic, while generalizing across workload distributions.
+\end{abstract}
+
+%% ============================================================
+\section{Introduction}
+%% ============================================================
+
+% TODO: 1 page
+% Para 1: LLM serving is important, scheduling is hard (unpredictable lengths, KV cache, preemptions)
+% Para 2: Llumnix solves this with migration + virtual usage heuristic
+% Para 3: But heuristic is static, myopic, fixed tradeoffs
+% Para 4: We propose RL-based policy. Key insight: minimal modification (only CalcVirtualUsage)
+% Para 5: Results preview: X% improvement on Y metric
+% Para 6: Contributions bullet list
+
+%% ============================================================
+\section{Background and Related Work}
+%% ============================================================
+
+% TODO: 1.5 pages
+
+\subsection{LLM Serving and KV Cache Management}
+% Auto-regressive inference, PagedAttention, preemption problem
+
+\subsection{Llumnix: Dynamic Scheduling via Virtual Usage}
+% Virtual usage abstraction, freeness metric, 4 rules
+% Algorithm 1 from paper
+% Migration mechanism
+
+\subsection{Reinforcement Learning for Systems}
+% Pensieve (video streaming), Decima (job scheduling), Resource management (Mao et al.)
+% Why RL is well-suited: MDP structure, long-term optimization, adaptive
+
+%% ============================================================
+\section{Method}
+%% ============================================================
+
+% TODO: 2 pages
+
+\subsection{MDP Formulation}
+
+\paragraph{State space.}
+% Mathematical definition of s_t
+% Per-instance features, cluster features
+% $s_t = \{s_t^{inst}, s_t^{cluster}\}$
+
+\paragraph{Action space.}
+% $a_t \in [-1, 1]^N$ where N = number of instances
+% Maps to virtual usage: $v_i = p_i \cdot (1 + a_i \cdot \alpha)$
+
+\paragraph{Reward function.}
+% $r_t = -w_1 \cdot L_{P99} - w_2 \cdot N_{preempt} - w_3 \cdot F_{frag} + w_4 \cdot R_{SLO} + w_5 \cdot T$
+
+\subsection{Policy Architecture}
+
+% TODO: Include architecture figure
+% \begin{figure}[t]
+%   \centering
+%   \includegraphics[width=0.9\textwidth]{figures/policy_architecture.pdf}
+%   \caption{Multi-head policy network architecture.}
+%   \label{fig:policy}
+% \end{figure}
+
+% Instance encoder → Self-attention → Cluster encoder → Combination → Action heads
+
+\subsection{Training Procedure}
+
+\paragraph{Phase 1: Behavior cloning.}
+% Pre-train from heuristic traces
+
+\paragraph{Phase 2: PPO fine-tuning.}
+% Online training in simulated environment
+% Hyperparameters table
+
+% \begin{table}[h]
+%   \centering
+%   \caption{Training hyperparameters.}
+%   \begin{tabular}{ll}
+%     \toprule
+%     Parameter & Value \\
+%     \midrule
+%     Algorithm & PPO \\
+%     Learning rate & $3 \times 10^{-4}$ \\
+%     Batch size & 64 \\
+%     GAE $\lambda$ & 0.95 \\
+%     Discount $\gamma$ & 0.99 \\
+%     Clip range & 0.2 \\
+%     Entropy coefficient & 0.01 \\
+%     Total timesteps & $10^6$ \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+\subsection{Integration with Llumnix}
+% RLBasedLoad class
+% What changes vs. what stays the same
+% Inference latency requirements (< 1ms)
+
+%% ============================================================
+\section{Experimental Setup}
+%% ============================================================
+
+% TODO: 1 page
+
+\subsection{Hardware and Models}
+% GPU type and count
+% LLaMA-7B, 16-bit precision
+% vLLM 0.6.3.post1
+
+\subsection{Traces and Workloads}
+% ShareGPT, BurstGPT
+% Synthetic: S-S, M-M, L-L, S-L, L-S
+% Arrival: Poisson, Gamma (varying CV)
+
+% \begin{table}[h]
+%   \centering
+%   \caption{Sequence length distributions (number of tokens).}
+%   \begin{tabular}{llccccc}
+%     \toprule
+%     & & Mean & P50 & P80 & P95 & P99 \\
+%     \midrule
+%     \multirow{2}{*}{ShareGPT} & In & 306 & 74 & 348 & 1484 & 3388 \\
+%     & Out & 500 & 487 & 781 & 988 & 1234 \\
+%     \midrule
+%     \multirow{2}{*}{BurstGPT} & In & 830 & 582 & 1427 & 2345 & 3549 \\
+%     & Out & 243 & 434 & 434 & 669 & 964 \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+\subsection{Baselines}
+% Round-Robin, INFaaS++, Llumnix-Heuristic
+
+\subsection{Metrics}
+% End-to-end, prefill, decode latency (mean, P99)
+% Preemption loss
+% Fragmentation ratio
+
+%% ============================================================
+\section{Results}
+%% ============================================================
+
+% TODO: 2 pages
+
+\subsection{Baseline Serving Performance (Exp 1)}
+% ShareGPT + BurstGPT comparison
+% Figure: 7-column latency plot
+
+\subsection{Priority Workloads (Exp 2)}
+% High-priority vs normal latencies
+% SLO isolation
+
+\subsection{Bursty Traffic (Exp 3)}
+% Gamma arrivals with varying CV
+% Adaptation capability
+
+\subsection{Long-Context Workloads (Exp 4)}
+% Memory fragmentation results
+% L-L distribution
+
+\subsection{Generalization (Exp 5)}
+% Train on ShareGPT, test on BurstGPT
+% Cross-distribution transfer
+
+\subsection{Ablation Studies}
+% Reward weight sensitivity
+% State feature importance
+% Training duration effect
+
+%% ============================================================
+\section{Discussion}
+%% ============================================================
+
+% TODO: 0.5 page
+% When does RL help? When does it hurt?
+% Training cost vs deployment benefit
+% Inference overhead analysis
+% Simulation vs. real deployment gap (if applicable)
+
+%% ============================================================
+\section{Limitations and Future Work}
+%% ============================================================
+
+% TODO: 0.5 page
+% Simulation fidelity
+% Scalability to larger clusters
+% Multi-objective RL (Pareto optimization)
+% Direct migration actions (Option B)
+% Online adaptation
+
+%% ============================================================
+\section{Conclusion}
+%% ============================================================
+
+% TODO: 0.25 page
+% Summary of contributions and key findings
+
+%% ============================================================
+\begin{thebibliography}{10}
+\small
+
+\bibitem[Sun et al.(2024)]{sun2024llumnix}
+B.~Sun, Z.~Huang, H.~Zhao, W.~Xiao, X.~Zhang, Y.~Li, and W.~Lin.
+Llumnix: Dynamic scheduling for large language model serving.
+In \emph{OSDI}, 2024.
+
+\bibitem[Kwon et al.(2023)]{kwon2023vllm}
+W.~Kwon, Z.~Li, S.~Zhuang, Y.~Sheng, L.~Zheng, C.~H.~Yu, J.~E.~Gonzalez, H.~Zhang, and I.~Stoica.
+Efficient memory management for large language model serving with {PagedAttention}.
+In \emph{SOSP}, 2023.
+
+\bibitem[Mao et al.(2016)]{mao2016resource}
+H.~Mao, M.~Alizadeh, I.~Menache, and S.~Kandula.
+Resource management with deep reinforcement learning.
+In \emph{HotNets}, 2016.
+
+\bibitem[Mao et al.(2017)]{mao2017neural}
+H.~Mao, R.~Netravali, and M.~Alizadeh.
+Neural adaptive video streaming with {Pensieve}.
+In \emph{SIGCOMM}, 2017.
+
+\bibitem[Schulman et al.(2017)]{schulman2017proximal}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov.
+Proximal policy optimization algorithms.
+\emph{arXiv:1707.06347}, 2017.
+
+\bibitem[Mao et al.(2019)]{mao2019learning}
+H.~Mao, M.~Schwarzkopf, S.~Venkatakrishnan, Z.~Meng, and M.~Alizadeh.
+Learning scheduling algorithms for data processing clusters.
+In \emph{SIGCOMM}, 2019.
+
+% Add more references as needed
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,124 @@
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2025}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\title{RL-based Dynamic Scheduling for LLM Serving:\\Improving Llumnix with Reinforcement Learning}
+
+\author{
+  Yuxuan Bai \\
+  University of Virginia \\
+  \texttt{yuxuan.bai@virginia.edu} \\
+  \And
+  Jiaqi Liu \\
+  University of Virginia \\
+  \texttt{jiaqi.liu@virginia.edu} \\
+  \And
+  Peng Xia \\
+  University of Virginia \\
+  \texttt{peng.xia@virginia.edu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\vspace{-1em}
+\section{Introduction}
+\vspace{-0.3em}
+
+Serving large language models (LLMs) at scale presents unique scheduling challenges.
+Unlike fixed-size inference tasks, LLM requests exhibit \emph{unpredictable output lengths}, \emph{dynamically growing KV caches}, and \emph{heterogeneous latency requirements}, making static scheduling fundamentally inadequate.
+When GPU memory is exhausted, the system must \emph{preempt} running requests, causing severe tail-latency degradation (up to 3.8$\times$ P99 increase). In multi-GPU clusters, load imbalance and memory fragmentation further compound these issues.
+
+Llumnix~\cite{sun2024llumnix} addresses these challenges by introducing \emph{runtime rescheduling}---live migration of running requests with their KV caches across GPU instances via pipelined transfers with near-zero downtime.
+However, Llumnix relies on \emph{hand-crafted heuristics} (a ``virtual usage'' mechanism) to decide when and where to migrate. These heuristics are static, myopic, and use fixed tradeoff parameters, limiting their effectiveness under dynamic workloads.
+
+We propose replacing Llumnix's heuristic policy with a \textbf{reinforcement learning (RL)-based policy} that learns scheduling decisions from data. Our RL agent observes cluster state and outputs virtual usage values that drive Llumnix's existing infrastructure. This approach is \emph{adaptive} (learns from workload patterns), \emph{data-driven} (eliminates manual rule crafting), and \emph{globally optimizing} (maximizes long-term cumulative reward). Critically, our design requires \textbf{minimal modification}: only the \texttt{CalcVirtualUsage()} function is replaced, while migration, dispatch, and the vLLM backend remain unchanged.
+
+\vspace{-0.5em}
+\section{Background}
+\vspace{-0.3em}
+
+\paragraph{LLM serving and KV cache management.}
+Auto-regressive LLM inference generates tokens sequentially, with each token attending to all previous tokens via key-value (KV) caches in GPU memory. The KV cache grows linearly with output length, which is unknown at dispatch time. Systems like vLLM~\cite{kwon2023vllm} use paged attention for efficient memory management, but when aggregate usage exceeds GPU capacity, requests must be preempted---swapped to CPU or recomputed---causing severe latency spikes.
+
+\paragraph{Llumnix and its virtual usage heuristic.}
+Llumnix~\cite{sun2024llumnix} (OSDI 2024) is the first system to support live migration of LLM requests across GPUs. It introduces a \emph{virtual usage} abstraction that may differ from physical usage to unify scheduling objectives. A ``freeness'' score $F_i = (M - \sum \text{Virtual}_j) / B$ determines request placement. Four hand-crafted rules govern virtual usage: (1)~normal requests use physical usage; (2)~queuing requests inflate to demand level; (3)~high-priority instances add headroom; (4)~terminating instances set usage to $\infty$. While effective, these heuristics are \emph{static} (manually crafted, cannot adapt to new workloads), \emph{myopic} (no predictive lookahead, greedy local optima), and have \emph{fixed tradeoffs} (hardcoded balance among competing objectives).
+
+\paragraph{RL for systems scheduling.}
+RL has demonstrated success in cluster resource management~\cite{mao2016resource}, video streaming~\cite{mao2017neural}, and query optimization~\cite{marcus2018towards}, outperforming hand-tuned heuristics by learning policies that account for long-term consequences. Our work applies this paradigm to LLM serving, where dynamic KV cache growth and live migration create a well-suited MDP structure.
+
+\vspace{-0.5em}
+\section{Project Tasks}
+\vspace{-0.3em}
+
+We decompose the project into five tasks with clear ownership.
+
+\paragraph{Task 1: MDP formulation and environment design \textnormal{(Yuxuan Bai).}}
+Define the scheduling MDP. The state $s_t$ captures per-instance features (memory usage, queue length), per-request features (token counts, priority class, waiting time), and cluster metrics (total load, fragmentation). The action $a_t$ outputs virtual usage values as a drop-in replacement for \texttt{CalcVirtualUsage()}. The reward $r_t$ is a weighted combination minimizing P99 latency, preemptions, and fragmentation while maximizing SLO compliance and cost efficiency. This task includes building a simulation environment interfacing with Llumnix's scheduling loop.
+
+\paragraph{Task 2: RL agent implementation and training \textnormal{(Jiaqi Liu).}}
+Implement the RL policy network and training pipeline using PPO~\cite{schulman2017proximal} for its stability in continuous action spaces. The policy uses a multi-head architecture outputting virtual usage values per instance. Training proceeds in two phases: offline pre-training from heuristic scheduling traces, then online fine-tuning in the simulated environment. We also implement baseline comparisons (original heuristic, DQN with discretized actions).
+
+\paragraph{Task 3: Llumnix integration \textnormal{(Peng Xia).}}
+Integrate the RL policy into Llumnix, replacing \texttt{CalcVirtualUsage()} with policy inference. This includes: (a)~a state collector extracting real-time cluster features; (b)~low-latency policy deployment ($< 1$ms per decision); (c)~correctness validation by comparing traces between heuristic and RL modes under identical workloads.
+
+\paragraph{Task 4: Experimental evaluation \textnormal{(All members).}}
+Conduct five experiments on 16$\times$ A10 GPUs (24GB) with vLLM backend, comparing against Round-Robin, INFaaS++, and Llumnix-VU baselines.
+\emph{Exp~1}: Baseline serving on ShareGPT/BurstGPT traces (mean \& P99 latency).
+\emph{Exp~2}: Priority workloads with 10\% high-priority requests (SLO isolation).
+\emph{Exp~3}: Bursty traffic with high-CV Gamma arrivals (adaptation under spikes).
+\emph{Exp~4}: Long-context workloads stressing memory fragmentation.
+\emph{Exp~5}: Generalization---train on ShareGPT, test on BurstGPT.
+
+\paragraph{Task 5: Analysis and report \textnormal{(All members).}}
+Analyze results including ablation studies on reward weights and state features. Prepare the final report with findings, limitations, and future directions (multi-objective RL, direct migration actions).
+
+\begin{thebibliography}{6}
+\small
+
+\bibitem[Sun et al.(2024)]{sun2024llumnix}
+B.~Sun, Z.~Huang, H.~Zhao, W.~Xiao, X.~Zhang, Y.~Li, and W.~Lin.
+Llumnix: Dynamic scheduling for large language model serving.
+In \emph{OSDI}, 2024.
+
+\bibitem[Kwon et al.(2023)]{kwon2023vllm}
+W.~Kwon, Z.~Li, S.~Zhuang, Y.~Sheng, L.~Zheng, C.~H.~Yu, J.~E.~Gonzalez, H.~Zhang, and I.~Stoica.
+Efficient memory management for large language model serving with {PagedAttention}.
+In \emph{SOSP}, 2023.
+
+\bibitem[Mao et al.(2016)]{mao2016resource}
+H.~Mao, M.~Alizadeh, I.~Menache, and S.~Kandula.
+Resource management with deep reinforcement learning.
+In \emph{HotNets}, 2016.
+
+\bibitem[Mao et al.(2017)]{mao2017neural}
+H.~Mao, R.~Netravali, and M.~Alizadeh.
+Neural adaptive video streaming with {Pensieve}.
+In \emph{SIGCOMM}, 2017.
+
+\bibitem[Marcus et al.(2018)]{marcus2018towards}
+R.~Marcus, P.~Negi, H.~Mao, C.~Zhang, M.~Alizadeh, T.~Kraska, and N.~Tatbul.
+Towards learned infrastructure.
+\emph{arXiv:1812.01772}, 2018.
+
+\bibitem[Schulman et al.(2017)]{schulman2017proximal}
+J.~Schulman, F.~Wolski, P.~Dhariwal, A.~Radford, and O.~Klimov.
+Proximal policy optimization algorithms.
+\emph{arXiv:1707.06347}, 2017.
+
+\end{thebibliography}
+
+\end{document}
